@@ -3,11 +3,11 @@ package Module::Require;
 use strict;
 use vars qw: @ISA @EXPORT_OK $VERSION :;
 
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 @ISA = qw[ Exporter ];
 
-# $Id: Require.pm,v 1.3 2001/12/20 19:24:40 jgsmith Exp $
+# $Id: Require.pm,v 1.4 2002/02/21 05:45:07 jgsmith Exp $
 
 @EXPORT_OK = qw: require_regex require_glob walk_inc :;
 
@@ -40,7 +40,7 @@ sub walk_inc(;&&$) {
     $filter = sub { $_ unless /\.pod$/ or /\.pl$/ } unless defined $filter;
 
     my $todo = shift;
-    $todo = sub { do $_[1] and $INC{$_[0]} = $_[1] and 1 } unless defined $todo;
+    $todo = sub { require $_[1] and $INC{$_[0]} = $_[1] and 1 } unless defined $todo;
 
     my $root = shift;
     $root = "" unless defined $root;
@@ -77,11 +77,12 @@ sub require_regex {
             closedir $dh;
             foreach my $f (@files) {
                 my $realfilename = "$prefix/$fileprefix/$f";
-                next if $INC{"$fileprefix/$f"};
+                next if $INC{$realfilename} || $INC{"$fileprefix/$f"};
                 if( -f $realfilename ) {
                     $modules{"$fileprefix/$f"} = undef;
                     eval {
-                        $INC{"$fileprefix/$f"} = $realfilename if do $realfilename;
+                        $INC{"$fileprefix/$f"} = $realfilename if eval qq"require $realfilename";
+			delete $INC{$realfilename};
                     };
                 }
             }
@@ -101,23 +102,24 @@ sub require_glob {
         my $fileprefix = "";
 
         if($file =~ m{^(.*)/([^/]*)$}) {
-            $fileprefix = "/" . $1;
+            $fileprefix = $1;
             $file = $2;
         }
 
         # thanks to `perldoc -f require' for the basic logic here :)
         foreach my $prefix (@INC) {
-            my @files = eval "<$prefix$fileprefix/$file>";
+            my @files = eval "<$prefix/$fileprefix/$file>";
             foreach my $realfilename (@files) {
                 my $f = $realfilename;
-                $f =~ s{^$prefix$fileprefix/}{};
-                next if $INC{$realfilename};
+                $f =~ s{^$prefix/$fileprefix/}{};
+                next if $INC{$realfilename} || $INC{"$fileprefix/$f"};
                 if( -f $realfilename ) {
                     $modules{"$fileprefix/$f"} = undef;
                     eval {
-                        if(do $realfilename) {
+                        if(eval { require $realfilename }) {
                             $INC{"$fileprefix/$f"} = $realfilename;
                             delete $modules{"$fileprefix/$f"};
+			    delete $INC{$realfilename};
                         }
                     };
                 }
