@@ -3,9 +3,11 @@ package Module::Require;
 use strict;
 use vars qw: @ISA @EXPORT_OK $VERSION :;
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
-# $Id: Require.pm,v 1.1 2001/12/17 21:41:14 jgsmith Exp $
+@ISA = qw[ Exporter ];
+
+# $Id: Require.pm,v 1.2 2001/12/17 21:47:28 jgsmith Exp $
 
 @EXPORT_OK = qw: require_regex require_glob :;
 
