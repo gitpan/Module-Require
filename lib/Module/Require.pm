@@ -3,13 +3,55 @@ package Module::Require;
 use strict;
 use vars qw: @ISA @EXPORT_OK $VERSION :;
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 @ISA = qw[ Exporter ];
 
-# $Id: Require.pm,v 1.2 2001/12/17 21:47:28 jgsmith Exp $
+# $Id: Require.pm,v 1.3 2001/12/20 19:24:40 jgsmith Exp $
 
-@EXPORT_OK = qw: require_regex require_glob :;
+@EXPORT_OK = qw: require_regex require_glob walk_inc :;
+
+sub _walk_inc {
+    my $filter = shift;
+    my $todo = shift;
+    my $prefix = shift;
+    my $root = shift;
+
+    my %modules = ( );
+    my $dh;
+    opendir $dh, "$prefix/$root";
+    my(@files) = grep { defined } map &$filter("$root/$_"), grep !/^\./, readdir($dh);
+    closedir $dh;
+    foreach my $f (@files) {
+        my $realfilename = "$prefix/$f";
+        next if $INC{$f};
+        if ( -d $realfilename ) {
+            @modules{&_walk_inc($filter, $todo, $prefix, $f)} = ( );
+        } elsif( -f $realfilename ) {
+            $modules{$f} = undef;
+            eval { &$todo($f, $realfilename) and delete $modules{$f} };
+        }
+    }
+    return keys %modules;
+}
+
+sub walk_inc(;&&$) {
+    my $filter = shift;
+    $filter = sub { $_ unless /\.pod$/ or /\.pl$/ } unless defined $filter;
+
+    my $todo = shift;
+    $todo = sub { do $_[1] and $INC{$_[0]} = $_[1] and 1 } unless defined $todo;
+
+    my $root = shift;
+    $root = "" unless defined $root;
+
+    my %modules = ( );
+    foreach my $prefix (@INC) {
+        @modules{_walk_inc $filter, $todo, $prefix, $root} = ( );
+    }
+    return unless defined wantarray;
+    return wantarray ? keys %modules : scalar keys %modules;
+}
 
 sub require_regex {
     my %modules = ( );
@@ -92,15 +134,16 @@ __END__
 
 =head1 NAME
 
-Module::RegexRequire
+Module::Require
 
 =head1 SYNOPSIS
 
- use Module::RegexRequire qw: require_regex require_glob :;
+ use Module::Require qw: require_regex require_glob :;
 
  require_regex q[DBD::.*];
  require_regex qw[DBD::.* Foo::Bar_.*];
  require_glob qw[DBD::* Foo::Bar_*];
+ walk_inc sub { m{(/|^)Bar_.*$} and return $_ }, undef, q"DBD";
 
 =head1 DESCRIPTION
 
@@ -109,22 +152,65 @@ know all the names, but just the pattern they fit.  This can be useful for
 allowing drop-in modules for application expansion without requiring
 configuration or prior knowledge.
 
-The C<require_regex> function takes a list of files and searches C<@INC>
-trying to find all possible modules.  Only the last part of the module name
-should be the regex expression (C<Foo::Bar_.*> is allowed, but C<F.*::Bar>
-is not).  Each file found and successfully loaded is added to C<%INC>.  Any
-file already in C<%INC> is not loaded.  No C<import> functions are called.
+The regular expression and glob wildcards can only match the filename of
+the module, not the directory in which it resides.  So, for example,
+C<Apache::*> will load all the modules that begin with C<Apache::>,
+including C<Apache::Session>, but will not load C<Apache::Session::MySQL>.
+Likewise, C<*::Session> is not allowed since the variable part of the
+module name is not in the last component.
+
+Note that unlike the Perl C<require> keyword, quoting or leaving an
+argument as a bareword does not affect how the function behaves.
+
+=head1 FUNCTIONS
+
+=over 4
+
+=item walk_inc \&filter \&todo 'path'
+
+This function will walk through C<@INC> and pass each filename under
+"path::" to C<&filter>.  If C<&filter> returns a defined value, the
+returned value is then passed to the C<&todo> function.  The default path
+is '' (the empty string).  The default filter function is to return the
+argument.  The default todo function is to load the module.
+
+For example,
+
+  print join "\n", walk_inc;
+
+will try to load all the available modules, printing a list of modules that
+could not be loaded.  Note that files and directories beginning with a
+period (`.') are not considered.
+
+  walk_inc sub { /^X/ and return $_ }, undef, 'Foo';
+
+will try and load all the modules in the C<Foo::> namespace that begin with
+an `X', recursively.
+
+Module files should end with C<.pm> and directories otherwise.  This allows
+for an easy way to keep C<walk_inc> from descending directories.  The
+filter function may also be used to transform module names.
+
+If the module is already in C<%INC> it will be passed over.
+
+=item require_regex
+
+This function takes a list of files and searches C<@INC> trying to find all
+possible modules.  Only the last part of the module name should be the
+regex expression (C<Foo::Bar_.*> is allowed, but C<F.*::Bar> is not).  Each
+file found and successfully loaded is added to C<%INC>.  Any file already
+in C<%INC> is not loaded.  No C<import> functions are called.
 
 The function will return a list of files found but not loaded or, in a
 scalar context, the number of such files.  This is the opposite of the
 sense of C<require>, with true meaning at least one file failed to load.
 
-Note that unlike the Perl C<require> keyword, quoting or leaving an
-argument as a bareword does not affect how the function behaves.
+=item require_glob
 
-The C<require_glob> function behaves the same as the C<require_regex>
-function except it uses the glob operator (E<lt>E<gt>) instead of regular
-expressions.
+This function behaves the same as the C<require_regex> function except it
+uses the glob operator (E<lt>E<gt>) instead of regular expressions.
+
+=back 4
 
 =head1 SEE ALSO
 
