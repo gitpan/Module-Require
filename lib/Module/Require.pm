@@ -3,11 +3,11 @@ package Module::Require;
 use strict;
 use vars qw: @ISA @EXPORT_OK $VERSION :;
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 @ISA = qw[ Exporter ];
 
-# $Id: Require.pm,v 1.4 2002/02/21 05:45:07 jgsmith Exp $
+# $Id: Require.pm,v 1.1 2004/03/05 16:58:44 jgsmith Exp $
 
 @EXPORT_OK = qw: require_regex require_glob walk_inc :;
 
@@ -23,13 +23,14 @@ sub _walk_inc {
     my(@files) = grep { defined } map &$filter("$root/$_"), grep !/^\./, readdir($dh);
     closedir $dh;
     foreach my $f (@files) {
-        my $realfilename = "$prefix/$f";
-        next if $INC{$f};
+        next unless $f;
+        my $realfilename = "$prefix/$root/$f";
+        next if $INC{"$root/$f"};
         if ( -d $realfilename ) {
-            @modules{&_walk_inc($filter, $todo, $prefix, $f)} = ( );
+            @modules{&_walk_inc($filter, $todo, $prefix, "$root/$f")} = ( );
         } elsif( -f $realfilename ) {
-            $modules{$f} = undef;
-            eval { &$todo($f, $realfilename) and delete $modules{$f} };
+            $modules{"$root/$f"} = undef;
+            eval { &$todo("$root/$f", $realfilename) and delete $modules{"$root/$f"} };
         }
     }
     return keys %modules;
@@ -37,10 +38,10 @@ sub _walk_inc {
 
 sub walk_inc(;&&$) {
     my $filter = shift;
-    $filter = sub { $_ unless /\.pod$/ or /\.pl$/ } unless defined $filter;
+    $filter ||= sub { return $_ unless /\.pod$/ or /\.pl$/ };
 
     my $todo = shift;
-    $todo = sub { require $_[1] and $INC{$_[0]} = $_[1] and 1 } unless defined $todo;
+    $todo ||= sub { require $_[1] and $INC{$_[0]} = $_[1] and 1 };
 
     my $root = shift;
     $root = "" unless defined $root;
@@ -224,7 +225,7 @@ James G. Smith <jsmith@cpan.org>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2001 Texas A&M University.  All Rights Reserved.
+Copyright (C) 2001, 2004 Texas A&M University.  All Rights Reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

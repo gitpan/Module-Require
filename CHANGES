@@ -1,3 +1,7 @@
+0.05
+----
+Skip trying to load blank file names.
+
 0.04
 ----
 Corrected insertion of found modules into %INC (what used to be
@@ -6,4 +10,3 @@ Corrected insertion of found modules into %INC (what used to be
 0.03
 ----
 Corrected the name in the POD to reflect the module name.
-

@@ -1,6 +1,8 @@
+Build.PL
 CHANGES
-MANIFEST
+MANIFEST			This list of files
+META.yml
 Makefile.PL
 README
 lib/Module/Require.pm
-t/load.t
+t/00load.t

@@ -1,8 +1,8 @@
-# $Id: load.t,v 1.1 2001/12/17 21:41:16 jgsmith Exp $
+# $Id: 00load.t,v 1.1 2004/03/05 16:58:44 jgsmith Exp $
 
 BEGIN { print "1..1\n"; }
 
-eval {
+eval q{
     use Module::Require qw: require_regex require_glob :;
 };
 

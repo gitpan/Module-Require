@@ -19,7 +19,7 @@ DESCRIPTION
     the module, not the directory in which it resides. So, for example,
     "Apache::*" will load all the modules that begin with "Apache::",
     including "Apache::Session", but will not load "Apache::Session::MySQL".
-    Likewise, "*::Session" is not allowed since the variable part of the
+    Likewise, *::Session is not allowed since the variable part of the
     module name is not in the last component.
 
     Note that unlike the Perl "require" keyword, quoting or leaving an
@@ -27,9 +27,9 @@ DESCRIPTION
 
 FUNCTIONS
     walk_inc \&filter \&todo 'path'
-        This function will walk through "@INC" and pass each filename under
-        "path::" to "&filter". If "&filter" returns a defined value, the
-        returned value is then passed to the "&todo" function. The default
+        This function will walk through @INC and pass each filename under
+        "path::" to &filter. If &filter returns a defined value, the
+        returned value is then passed to the &todo function. The default
         path is '' (the empty string). The default filter function is to
         return the argument. The default todo function is to load the
         module.
@@ -52,15 +52,15 @@ FUNCTIONS
         directories. The filter function may also be used to transform
         module names.
 
-        If the module is already in "%INC" it will be passed over.
+        If the module is already in %INC it will be passed over.
 
     require_regex
-        This function takes a list of files and searches "@INC" trying to
-        find all possible modules. Only the last part of the module name
-        should be the regex expression ("Foo::Bar_.*" is allowed, but
-        "F.*::Bar" is not). Each file found and successfully loaded is added
-        to "%INC". Any file already in "%INC" is not loaded. No "import"
-        functions are called.
+        This function takes a list of files and searches @INC trying to find
+        all possible modules. Only the last part of the module name should
+        be the regex expression ("Foo::Bar_.*" is allowed, but "F.*::Bar" is
+        not). Each file found and successfully loaded is added to %INC. Any
+        file already in %INC is not loaded. No "import" functions are
+        called.
 
         The function will return a list of files found but not loaded or, in
         a scalar context, the number of such files. This is the opposite of
@@ -79,7 +79,7 @@ AUTHOR
     James G. Smith <jsmith@cpan.org>
 
 COPYRIGHT
-    Copyright (C) 2001 Texas A&M University. All Rights Reserved.
+    Copyright (C) 2001, 2004 Texas A&M University. All Rights Reserved.
 
     This module is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.
